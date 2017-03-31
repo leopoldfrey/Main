@@ -5,8 +5,8 @@
 
 void ofApp::setup() {
     
-    //ofLogToFile("log.txt", true);
-    ofLogToConsole();
+    ofLogToFile("log.txt", true);
+    //ofLogToConsole();
     
     ofTrueTypeFont::setGlobalDpi(72);
     

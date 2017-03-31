@@ -1,1 +1,4 @@
 *.app
+log.txt
+*.csv
+*.jpg
