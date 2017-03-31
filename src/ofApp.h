@@ -96,8 +96,8 @@ public:
     void keyPressed(int key);
     void keyReleased(int key){}
     void mouseMoved(int x, int y ){}
-    void mouseDragged(int x, int y, int button){}
-    void mousePressed(int x, int y, int button){}
+    void mouseDragged(int x, int y, int button);
+    void mousePressed(int x, int y, int button);
     void mouseReleased(int x, int y, int button);
     void windowResized(int w, int h);
     void dragEvent(ofDragInfo dragInfo){}
@@ -313,10 +313,21 @@ public:
 #pragma mark -
 #pragma mark GRAPH
     
+    int nLines;
+    bool graphFinger = true;
     bool graphMode;
+    bool graphFinder;
     int graphType;
     Graph gAL, gAR, gBL, gBR;
+    float graphStart = 0;
+    float graphEnd = 1;
+    bool dragGraphStart;
+    bool dragGraphEnd;
+    bool dragGraph;
+    int clicTime;
+    int clicX;
     void initGraph();
+    void setFinger(bool f);
     
 #pragma mark -
 #pragma mark UTILS

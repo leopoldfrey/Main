@@ -4,14 +4,18 @@
 #include "leapPoint.h"
 #include "ofApp.h"
 
-#define GRAPH_P_X 0
-#define GRAPH_P_Y 1
-#define GRAPH_P_Z 2
-#define GRAPH_I_X 3
-#define GRAPH_I_Y 4
-#define GRAPH_I_Z 5
-#define GRAPH_P_N 6
-#define GRAPH_I_N 7
+#define MAX_GRAPH 5
+
+#define GRAPH_X 0
+#define GRAPH_Y 1
+#define GRAPH_Z 2
+#define GRAPH_N 3
+#define GRAPH_PI 4
+#define GRAPH_SPD 5
+#define GRAPH_DSPD 6
+// TODO 3D
+// TODO VOLUME / AIRE
+// TODO START/END
 
 
 typedef struct _timePoint {
@@ -19,16 +23,19 @@ typedef struct _timePoint {
     leapPoint point;
     float normP;
     float normI;
+    float dPI;
+    float spdP;
+    float spdI;
+    float dSPD;
 } timePoint;
 
 class Graph {
 public:
+    bool finger;
     string name;
     timePoint minV;
     timePoint maxV;
     timePoint meanV;
-    //float meanNormP;
-    //float meanNormI;
     timePoint medianV;
     int maxTime;
     vector<timePoint> histo;
@@ -44,6 +51,10 @@ public:
         name = n;
     }
     
+    void setFinger(bool f) {
+        finger = f;
+    }
+    
     void setDuration(int d) {
         maxTime = d;
     }
@@ -51,7 +62,12 @@ public:
     void add(int t, leapPoint p) {
         float nP = p.norm(false);
         float nI = p.norm(true);
-        timePoint val = {t, p, nP, nI};
+        float dPI = distance(p.palm, p.index);
+        //ofLog(OF_LOG_WARNING) << "ADD " << name << " t:" << t << " t-1:" << (histo.size() == 0 ? 0 : histo[histo.size()-1].time);
+        float spdP = histo.size() == 0 ? 0 : speed(histo[histo.size()-1], {t,p}, false);
+        float spdI = histo.size() == 0 ? 0 : speed(histo[histo.size()-1], {t,p}, true);
+        float dSPD = abs(spdI - spdP);
+        timePoint val = {t, p, nP, nI, dPI, spdP, spdI, dSPD};
         histo.push_back(val);
         maxV = minV = val;
     }
@@ -69,8 +85,12 @@ public:
             minV.point.index.x = min(minV.point.index.x, p.point.index.x);
             minV.point.index.y = min(minV.point.index.y, p.point.index.y);
             minV.point.index.z = min(minV.point.index.z, p.point.index.z);
-            minV.normP = min(minV.normP, p.normP);
-            minV.normI = min(minV.normI, p.normI);
+            minV.normP = p.normP == 0 ? minV.normP : min(minV.normP, p.normP);
+            minV.normI = p.normI == 0 ? minV.normI : min(minV.normI, p.normI);
+            minV.dPI = p.dPI == 0 ? minV.dPI : min(minV.dPI, p.dPI);
+            minV.spdP = p.spdP == 0 ? minV.spdP : min(minV.spdP, p.spdP);
+            minV.spdI = p.spdI == 0 ? minV.spdI : min(minV.spdI, p.spdI);
+            minV.dSPD = p.dSPD == 0 ? minV.dSPD : min(minV.dSPD, p.dSPD);
 
             maxV.point.palm.x = max(maxV.point.palm.x, p.point.palm.x);
             maxV.point.palm.y = max(maxV.point.palm.y, p.point.palm.y);
@@ -78,90 +98,140 @@ public:
             maxV.point.index.x = max(maxV.point.index.x, p.point.index.x);
             maxV.point.index.y = max(maxV.point.index.y, p.point.index.y);
             maxV.point.index.z = max(maxV.point.index.z, p.point.index.z);
-            maxV.normP = max(maxV.normP, p.normP);
-            maxV.normI = max(maxV.normI, p.normI);
+            maxV.normP = p.normP == 0 ? maxV.normP : max(maxV.normP, p.normP);
+            maxV.normI = p.normI == 0 ? maxV.normI : max(maxV.normI, p.normI);
+            maxV.dPI = p.dPI == 0 ? maxV.dPI : max(maxV.dPI, p.dPI);
+            maxV.spdP = p.spdP == 0 ? maxV.spdP : max(maxV.spdP, p.spdP);
+            maxV.spdI = p.spdI == 0 ? maxV.spdI : max(maxV.spdI, p.spdI);
+            maxV.dSPD = p.dSPD == 0 ? maxV.dSPD : max(maxV.dSPD, p.dSPD);
         }
         
         hasData = (minV.point != leapZero() || maxV.point != leapZero());
         mean();
-        //median();
-        ofLog() << "Calc graph " << name << " data(" << hasData << ")";
-        ofLog() << "min(" << toString(minV, 2) << ")";
-        ofLog() << "max(" << toString(maxV, 2) << ")";
-        ofLog() << "mean(" << toString(meanV,2) << ")";
-        //ofLog() << "median(" << toString(medianV,2) << ")";
+        median();
+        /*ofLog() << "Calc graph " << name << " data(" << hasData << ")";
+        if(hasData)
+        {
+            ofLog() << "min(" << toString(minV, 2) << ")";
+            ofLog() << "max(" << toString(maxV, 2) << ")";
+            ofLog() << "mean(" << toString(meanV,2) << ")";
+            ofLog() << "median(" << toString(medianV,2) << ")";
+        }//*/
     }
     
-    void draw(int x, int y, int w, int h, float start, float end, int mode, ofColor c, ofTrueTypeFont f) {
+    void draw(int x, int y, int w, int h, float start, float end, int mode, ofColor c, ofTrueTypeFont f, bool bg) {
+        
+        float min, max;
+        
+        switch(mode) {
+            default:
+                min = -120;
+                max = 120;
+                break;
+            case GRAPH_N:
+                min = 0;
+                max = 150;
+                break;
+            case GRAPH_PI:
+                min = 0;
+                max = 40;
+                break;
+            case GRAPH_SPD:
+            case GRAPH_DSPD:
+                min = 0;
+                max = 10;
+                break;
+        }
+        
+        if(bg)
+        {
+            // AXES
+            ofSetColor(255,255,255,255);
+            ofFill();
+            ofDrawRectangle(x, y, w, h);
+            
+            ofSetColor(50,50,50,255);
+            
+            glBegin(GL_LINES);
+            glVertex2f(x, ofMap(0., min, max, y+h, y));
+            glVertex2f(x+w, ofMap(0., min, max, y+h, y));
+            glEnd();//*/
+            
+            // HISTO
+            
+            f.drawString(getModeName(mode), x+10, y+20);
+        }
+        
+        ofSetColor(c);
+        int padx = 200;
+        f.drawString("min:"+ofToString(getValue(minV,mode),2), x+padx, bg ? y+20 : y+40);
+        f.drawString("max:"+ofToString(getValue(maxV,mode),2), x+padx+100, bg ? y+20 : y+40);
+        f.drawString("mean:"+ofToString(getValue(meanV,mode),2), x+padx+200, bg ? y+20 : y+40);
+        //f.drawString("median:"+ofToString(getValue(medianV,mode),2), x+padx+300, bg ? y+20 : y+40);
+
+        f.drawString(name, x+w-130, bg ? y+20 : y+40);
+        f.drawString(hasData ? "" : "(no data)", x+w-75, bg ? y+20 : y+40);
+        
         if(!hasData)
             return;
         
-        float min, max;
-        /*
-         switch(dV) {
-            case GRAPH_P_X:
-                min = -50;//minV.palm.x;
-                max = 50;//maxV.palm.x;
-                break;
-            case GRAPH_P_Y:
-                min = -40;//minV.palm.y;
-                max = 40;//maxV.palm.y;
-                break;
-            case GRAPH_P_Z:
-                min = -30;//minV.palm.z;
-                max = 30;//maxV.palm.z;
-                break;
-            case GRAPH_I_X:
-                min = -50;//minV.index.x;
-                max = 50;//maxV.index.x;
-                break;
-            case GRAPH_I_Y:
-                min = -40;//minV.index.y;
-                max = 40;//maxV.index.y;
-                break;
-            case GRAPH_I_Z:
-                min = -50;//minV.index.z;
-                max = 50;//maxV.index.z;
-                break;
-        }//*/
+        ofEnableSmoothing();
         
-        min = mode == GRAPH_P_N || mode == GRAPH_I_N ? 0 : -100.;
-        max = 100.;
-        
-        // AXES
-        
-        ofSetColor(255,255,255,255);
-        ofFill();
-        ofDrawRectangle(x, y, w, h);
-        
-        ofSetColor(50,50,50,255);
-        
-        glBegin(GL_LINES);
-        glVertex2f(x, ofMap(0., min, max, y+h, y));
-        glVertex2f(x+w, ofMap(0., min, max, y+h, y));
-        glEnd();//*/
-        
-        // HISTO
-        
-        ofSetColor(c);
-        f.drawString(getModeName(mode), x+10, y+20);
-        f.drawString("min:"+ofToString(getValue(minV,mode),2), x+120, y+20);
-        f.drawString("max:"+ofToString(getValue(maxV,mode),2), x+220, y+20);
-        f.drawString("mean:"+ofToString(getValue(meanV,mode),2), x+320, y+20);
-        //f.drawString("median:"+ofToString(getValue(medianV,mode),2), x+420, y+20);
-        
-        float v, curV, prevV;
+        ofSetLineWidth(2);
+        glBegin(GL_LINE_STRIP);
+        float v, curV;
         int t, curT, prevT;
         leapPoint p;
         timePoint val;
-
-        ofEnableSmoothing();
-        glBegin(GL_LINE_STRIP);
-        
-        prevT = x;
-        prevV = ofMap(0, min, max, y+h, y);
-        
         bool first = true;
+        ofPoint prevPt;
+        ofPoint curPt;
+        int startTime = start*maxTime;
+        int endTime = end*maxTime;
+        for(int i = 0 ; i < histo.size() ; i++) {
+            t = histo[i].time;
+            if(t >= startTime && t <= endTime)
+            {
+                v = getValue(histo[i], mode);
+                
+                curT = ofMap(t, startTime, endTime, x, x+w);
+                curV = ofMap(v, min, max, y+h, y);
+                curPt = finger ? histo[i].point.index : histo[i].point.palm;
+                if(i==0)
+                    prevPt = curPt;
+                
+                //ofLog() << "prev:(" << prevPt << ") cur:(" << curPt << ") dT:" << (t - prevT);
+                
+                if(curPt.x != prevPt.x || curPt.y != prevPt.y || curPt.z != prevPt.z)
+                {
+                    if(first)
+                    {
+                        first = false;
+                        glBegin(GL_LINE_STRIP);
+                    }
+                    glVertex2f(curT, curV);
+                    prevT = t;
+                } else {
+                    if(!first)
+                    {
+                        if(t - prevT > 100)
+                        {
+                            glEnd();
+                            first = true;
+                        } else {
+                            glVertex2f(curT, curV);
+                        }
+                    }
+                }
+                prevPt = curPt;
+            }
+        }
+        glEnd();
+        
+        /*
+        ofSetColor(ofColor::lightPink);
+        ofSetLineWidth(1);
+        glBegin(GL_LINE_STRIP);
         for(int i = 0 ; i < histo.size() ; i++) {
             t = histo[i].time;
             v = getValue(histo[i], mode);
@@ -169,113 +239,93 @@ public:
             curT = ofMap(t, 0, maxTime, x, x+w);
             curV = ofMap(v, min, max, y+h, y);
             
-            if(curV != prevV)//glVertex2f(prevT, prevV);
-            {
-                if(first)
-                    first = false;
-                else
-                    glVertex2f(curT, curV);
-                
-            }
-            prevV = curV;
-            prevT = curT;
+            glVertex2f(curT, curV);
+
         }
+        glEnd();//*/
         
-        glEnd();
-        
-        
+        ofSetLineWidth(1);
         ofFill();
-        
     }
     
     void setValue(timePoint p, int mode, float v) {
         switch(mode) {
             default:
-            case GRAPH_P_X:
-                p.point.palm.x = v;
-            case GRAPH_P_Y:
-                p.point.palm.y = v;
-            case GRAPH_P_Z:
-                p.point.palm.z = v;
-            case GRAPH_I_X:
-                p.point.index.x = v;
-            case GRAPH_I_Y:
-                p.point.index.y = v;
-            case GRAPH_I_Z:
-                p.point.index.z = v;
-            case GRAPH_P_N:
-                p.normP = v;
-            case GRAPH_I_N:
-                p.normI = v;
+            case GRAPH_X:
+                if(finger)
+                    p.point.index.x = v;
+                else
+                    p.point.palm.x = v;
+            case GRAPH_Y:
+                if(finger)
+                    p.point.index.y = v;
+                else
+                    p.point.palm.y = v;
+            case GRAPH_Z:
+                if(finger)
+                    p.point.index.z = v;
+                else
+                    p.point.palm.z = v;
+            case GRAPH_N:
+                if(finger)
+                    p.normI = v;
+                else
+                    p.normP = v;
+            case GRAPH_PI:
+                p.dPI = v;
+                break;
+            case GRAPH_SPD:
+                if(finger)
+                    p.spdI = v;
+                else
+                    p.spdP = v;
+                break;
+            case GRAPH_DSPD:
+                p.dSPD = v;
+                break;
         }
     }
     
     float getValue(timePoint tp, int mode) {
         switch(mode) {
             default:
-            case GRAPH_P_X:
-                return tp.point.palm.x;
-            case GRAPH_P_Y:
-                return tp.point.palm.y;
-            case GRAPH_P_Z:
-                return tp.point.palm.z;
-            case GRAPH_I_X:
-                return tp.point.index.x;
-            case GRAPH_I_Y:
-                return tp.point.index.y;
-            case GRAPH_I_Z:
-                return tp.point.index.z;
-            case GRAPH_P_N:
-                return tp.normP;
-            case GRAPH_I_N:
-                return tp.normI;
+            case GRAPH_X:
+                return finger ? tp.point.index.x : tp.point.palm.x;
+            case GRAPH_Y:
+                return finger ? tp.point.index.y : tp.point.palm.y;
+            case GRAPH_Z:
+                return finger ? tp.point.index.z : tp.point.palm.z;
+            case GRAPH_N:
+                return finger ? tp.normI : tp.normP;
+            case GRAPH_PI:
+                return tp.dPI;
+            case GRAPH_SPD:
+                return finger ? tp.spdI : tp.spdP;
+            case GRAPH_DSPD:
+                return tp.dSPD;
         }
     }
-    
-    /*float getValue(leapPoint p, int mode) {
-        switch(mode) {
-            default:
-            case GRAPH_P_X:
-                return p.palm.x;
-            case GRAPH_P_Y:
-                return p.palm.y;
-            case GRAPH_P_Z:
-                return p.palm.z;
-            case GRAPH_I_X:
-                return p.index.x;
-            case GRAPH_I_Y:
-                return p.index.y;
-            case GRAPH_I_Z:
-                return p.index.z;
-            case GRAPH_P_N:
-                return 0;
-            case GRAPH_I_N:
-                return 0;
-        }
-    }//*/
     
     string getModeName(int mode) {
+        string s = finger ? "Index " : "Palm ";
         switch(mode) {
-            case GRAPH_P_X:
-                return "Palm X";
-            case GRAPH_P_Y:
-                return "Palm Y";
-            case GRAPH_P_Z:
-                return "Palm Z";
-            case GRAPH_I_X:
-                return "Index X";
-            case GRAPH_I_Y:
-                return "Index Y";
-            case GRAPH_I_Z:
-                return "Index Z";
-            case GRAPH_P_N:
-                return "Palm Norm";
-            case GRAPH_I_N:
-                return "Index Norm";
+            case GRAPH_X:
+                return s + "X";
+            case GRAPH_Y:
+                return s + "Y";
+            case GRAPH_Z:
+                return s + "Z";
+            case GRAPH_N:
+                return s + "Norm";
+            case GRAPH_PI:
+                return "Distance(palm,index)";
+            case GRAPH_SPD:
+                return s + "Speed";
+            case GRAPH_DSPD:
+                return "SpdDiff(palm,index)";
         }
     }
     
-    /*
     void median()
     {
         size_t size = histo.size();
@@ -285,15 +335,15 @@ public:
             return;
         }
         
-        for(int mode = GRAPH_P_X ; mode <= GRAPH_I_N ; mode++)
+        for(int mode = 0 ; mode <= MAX_GRAPH ; mode++)
         {
             vector<float> vals;
             for(int i = 0 ; i < size ; i++)
                 vals.push_back(getValue(histo[i],mode));
             
-            setValue(medianV, mode, Median(vals.begin(),vals.end()));
+            setValue(medianV, mode, median(vals));
         }
-    }//*/
+    }
     
     /*
     template <typename It>
@@ -304,17 +354,19 @@ public:
         return *std::next(begin, size / 2);
     }//*/
     
-    /*float median(vector<float> &v, size_t size)
+    float median(vector<float> v)
     {
+        vector<float> v2 = v;
+        size_t size = v2.size();
         double median;
         
-        sort(v.begin(), v.end());
+        sort(v2.begin(), v2.end());
             
         if (size  % 2 == 0)
         {
-            median = (v[size / 2 - 1] + v[size / 2]) / 2;
+            median = (v2[size / 2 - 1] + v2[size / 2]) / 2;
         } else  {
-            median = v[size / 2];
+            median = v2[size / 2];
         }
             
         return median;
@@ -330,21 +382,51 @@ public:
             return;
         }
         leapPoint sum;
-        float normPsum, normIsum;
+        float normPsum, normIsum, dPIsum, spdPsum, spdIsum, dSPDsum;
         for(int i = 0 ; i < size ; i++)
         {
             sum += histo[i].point;
             normPsum += histo[i].normP;
             normIsum += histo[i].normI;
+            dPIsum += histo[i].dPI;
+            spdPsum += histo[i].spdP;
+            spdIsum += histo[i].spdI;
+            dSPDsum += histo[i].dSPD;
         }
         
         meanV.point = sum / size;
         meanV.normP = normPsum / size;
         meanV.normI = normIsum / size;
+        meanV.dPI = dPIsum / size;
+        meanV.spdP = spdPsum / size;
+        meanV.spdI = spdIsum / size;
+        meanV.dSPD = dSPDsum / size;
     }
     
     string toString(timePoint tp, int p) {
-        return tp.point.toString(p) + ", " + ofToString(tp.normP, p) + ", " + ofToString(tp.normI, p);
+        return tp.point.toString(p) + ", " + ofToString(tp.normP, p) + ", " + ofToString(tp.normI, p) + ", " + ofToString(tp.dPI, p) + ", " + ofToString(tp.spdP, p) + ", " + ofToString(tp.spdI, p);
+    }
+    
+    float distance(ofPoint palm, ofPoint index) {
+        ofPoint d = palm - index;
+        d.x = abs(d.x);
+        d.y = abs(d.y);
+        d.z = abs(d.z);
+        return d.length();
+    }
+    
+    float speed(timePoint p1, timePoint p2, bool finger) {
+        if (p1.time == p2.time)
+            return 0;
+        if(finger) {
+            if (p1.point.index == p2.point.index)
+                return 0;
+            return (p2.point.index - p1.point.index).length() / (p2.time - p1.time);
+        } else {
+            if (p1.point.palm == p2.point.palm)
+                return 0;
+            return (p2.point.palm - p1.point.palm).length() / (p2.time - p1.time);
+        }
     }
 };
 

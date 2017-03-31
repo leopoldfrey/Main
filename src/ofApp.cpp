@@ -210,33 +210,49 @@ void ofApp::graphDraw() {
     {
         ofSetColor(0,0,0,255);
         stringstream in;
-        in << shortName << " - " << ofToString(maxTime/1000.,2) << "s";
-        verdana14.drawString(in.str(), 10, 20);
+        in << shortName << " - " << ofToString(maxTime/1000.,2) << "s - Scenario " << currentScenario << " - \"" << scenari[currentScenario].getName() << "\"";
+        string s = in.str();
+        replace( s.begin(), s.end(), '_', ' ');
+                
+        verdana14.drawString(s, 10, 20);
     }
    
     int padx = 10;
     int pady = 10;
     int xx = padx;
     int yy = 32 + pady;
-    int ww = ofGetWidth()/2 - 2 * padx;
-    int hh = 100;
-    gAL.draw(xx, yy, ww, hh-pady, 0., 1., GRAPH_P_X, ofColor::black, verdana14);
-    gAL.draw(xx, yy+hh, ww, hh-pady, 0., 1., GRAPH_P_Y, ofColor::black, verdana14);
-    gAL.draw(xx, yy+hh*2, ww, hh-pady, 0., 1., GRAPH_P_Z, ofColor::black,verdana14);
-    gAL.draw(xx, yy+hh*3, ww, hh-pady, 0., 1., GRAPH_P_N, ofColor::black, verdana14);
-    gAL.draw(xx, yy+hh*4, ww, hh-pady, 0., 1., GRAPH_I_X, ofColor::black, verdana14);
-    gAL.draw(xx, yy+hh*5, ww, hh-pady, 0., 1., GRAPH_I_Y, ofColor::black, verdana14);
-    gAL.draw(xx, yy+hh*6, ww, hh-pady, 0., 1., GRAPH_I_Z, ofColor::black,verdana14);
-    gAL.draw(xx, yy+hh*7, ww, hh-pady, 0., 1., GRAPH_I_N, ofColor::black,verdana14);
+    int ww = ofGetWidth() - 2 * padx;
+    int hh = (ofGetHeight()-2*yy-pady)/2;
+    ofColor c = ofColor::darkBlue;
+    gAL.draw(xx, yy, ww, hh, graphStart, graphEnd, graphType, c, verdana14, true);
+    c = ofColor::darkGreen;
+    gAR.draw(xx, yy, ww, hh, graphStart, graphEnd, graphType, c, verdana14, false);
+    c = ofColor::darkBlue;
+    gBL.draw(xx, yy + hh + pady, ww, hh, graphStart, graphEnd, graphType, c, verdana14, true);
+    c = ofColor::darkGreen;
+    gBR.draw(xx, yy + hh + pady, ww, hh, graphStart, graphEnd, graphType, c, verdana14, false);
     
-    gAR.draw(xx + ofGetWidth()/2, yy, ww, hh-pady, 0., 1., GRAPH_P_X, ofColor::black, verdana14);
-    gAR.draw(xx + ofGetWidth()/2, yy+hh, ww, hh-pady, 0., 1., GRAPH_P_Y, ofColor::black, verdana14);
-    gAR.draw(xx + ofGetWidth()/2, yy+hh*2, ww, hh-pady, 0., 1., GRAPH_P_Z, ofColor::black,verdana14);
-    gAR.draw(xx + ofGetWidth()/2, yy+hh*3, ww, hh-pady, 0., 1., GRAPH_P_N, ofColor::black, verdana14);
-    gAR.draw(xx + ofGetWidth()/2, yy+hh*4, ww, hh-pady, 0., 1., GRAPH_I_X, ofColor::black, verdana14);
-    gAR.draw(xx + ofGetWidth()/2, yy+hh*5, ww, hh-pady, 0., 1., GRAPH_I_Y, ofColor::black, verdana14);
-    gAR.draw(xx + ofGetWidth()/2, yy+hh*6, ww, hh-pady, 0., 1., GRAPH_I_Z, ofColor::black,verdana14);
-    gAR.draw(xx + ofGetWidth()/2, yy+hh*7, ww, hh-pady, 0., 1., GRAPH_I_N, ofColor::black,verdana14);
+    ofSetColor(220,220,220,255);
+    ofDrawRectangle(0, ofGetHeight() - 32, ofGetWidth(), 32);
+    
+    int xxx = padx;
+    int yyy = ofGetHeight() - 32 + pady;
+    int www = ofGetWidth() - 2 * padx;
+    int hhh = 32 - 2 * pady;
+    
+    ofSetColor(200,200,200,255);
+    ofFill();
+    ofDrawRectangle(xxx, yyy, www, hhh);
+    ofSetColor(100,100,100,255);
+    ofFill();
+    
+    ofDrawRectangle(ofMap(graphStart,0,1,xxx,xxx+www), yyy, ofMap(graphEnd-graphStart,0,1,0,www), hhh);
+    
+    if(saveImage)
+    {
+        ofSaveScreen("capture/"+timestampString()+".jpg");
+        saveImage = false;
+    }
 }
 
 void ofApp::fboDraw() {
@@ -389,7 +405,7 @@ void ofApp::exit() {
 
 void ofApp::keyPressed(int key) {
     if (key == 'G') {
-        //graphMode = !graphMode;
+        graphMode = !graphMode;
         if(graphMode)
         {
             if(isRecording)
@@ -410,7 +426,18 @@ void ofApp::keyPressed(int key) {
     } else if (key == 'o') {
         openFile();
     } else if(graphMode) {
-        //
+        if (key == 'p') {
+            graphFinger = !graphFinger;
+            setFinger(graphFinger);
+        } else if (key == ' ' || key == 359 || key == 358) {
+            graphType++;
+            if(graphType > MAX_GRAPH)
+                graphType = 0;
+        } else if (key == 357 || key == 356) {
+            graphType--;
+            if(graphType < 0)
+                graphType = MAX_GRAPH;
+        }
     } else {
         if( key == 'h' ){
             bHide = !bHide;
@@ -464,9 +491,93 @@ void ofApp::keyPressed(int key) {
     }
 }
 
+void ofApp::mousePressed(int x, int y, int button) {
+    if(graphMode) {
+        
+        int padx = 10;
+        int pady = 10;
+        int xxx = padx;
+        int yyy = ofGetHeight() - 32 + pady;
+        int www = ofGetWidth() - 2 * padx;
+        int hhh = 32 - 2 * pady;
+
+        if(y > yyy && y < yyy+hhh)
+        {
+            if(ofGetElapsedTimeMillis() - clicTime < 200) {
+                graphStart = 0;
+                graphEnd = 1;
+            } else {
+                int startPos = xxx + graphStart*www;
+                int endPos = xxx + graphEnd*www;
+                if(abs(x-startPos) < 10)
+                {
+                    dragGraphStart = true;
+                } else if(abs(x-endPos) < 10) {
+                    dragGraphEnd = true;
+                } else if(x > startPos && x < endPos) {
+                    dragGraph = true;
+                }
+            }
+            clicTime = ofGetElapsedTimeMillis();
+            clicX = x;
+        }
+
+    }
+}
+
+void ofApp::mouseDragged(int x, int y, int button) {
+    if(graphMode) {
+        
+        int padx = 10;
+        int pady = 10;
+        int xxx = padx;
+        int yyy = ofGetHeight() - 32 + pady;
+        float www = ofGetWidth() - 2 * padx;
+        int hhh = 32 - 2 * pady;
+        
+        if(dragGraphStart)
+        {
+            graphStart = ofClamp((x - xxx)/www, 0, 1);
+            if(graphStart > graphEnd)
+            {
+                dragGraphStart = false;
+                dragGraphEnd = true;
+                float tmp = graphEnd;
+                graphEnd = graphStart;
+                graphStart = graphEnd;
+            }
+        }
+        if(dragGraphEnd)
+        {
+            graphEnd = ofClamp((x - xxx)/www, 0, 1);
+            if(graphEnd < graphStart)
+            {
+                dragGraphStart = true;
+                dragGraphEnd = false;
+                float tmp = graphEnd;
+                graphEnd = graphStart;
+                graphStart = graphEnd;
+            }
+        }
+        if(dragGraph)
+        {
+            int dX = x - clicX;
+            int startPos = xxx + graphStart*www;
+            int endPos = xxx + graphEnd*www;
+
+            graphEnd = ofClamp((endPos + dX - xxx)/www,0.,1.);
+            graphStart = ofClamp((startPos + dX - xxx)/www,0.,1.);
+            
+            clicX = x;
+        }
+    }
+}
+
 void ofApp::mouseReleased(int x, int y, int button) {
     if(graphMode) {
-        //
+        dragGraph = false;
+        dragGraphStart = false;
+        dragGraphEnd = false;
     } else {
         switch (button) {
             case OF_MOUSE_BUTTON_1:
@@ -1401,12 +1512,14 @@ int ofApp::getDuration() {
         ifstream file = ifstream(playFileName, ofstream::in);
         if (file.is_open())
         {
+            nLines = 0;
             string prevLine;
             string line;
             while (! file.eof() )
             {
                 prevLine = line;
                 getline (file,line);
+                nLines++;
             }
             vector<int> s = splitInt(prevLine,' ');
             if(s.size() > 0)
@@ -1423,16 +1536,20 @@ int ofApp::getDuration() {
 void ofApp::initGraph() {
     if(playFileName != "")
     {
+        graphStart = 0;
+        graphEnd = 1;
         maxTime = getDuration();
         ofLog() << "Init Graph " << shortName << " - " << ofToString(maxTime/1000., 2) << "s";
         gAL.clear();
-        gAL.setName("A_L");
+        gAL.setName("A Left");
         gAR.clear();
-        gAR.setName("A_R");
+        gAR.setName("A Right");
         gBL.clear();
-        gBL.setName("B_L");
+        gBL.setName("B Left");
         gBR.clear();
-        gBR.setName("B_R");
+        gBR.setName("B Right");
+        
+        setFinger(graphFinger);
         
         int t;
         leapPoint p;
@@ -1441,14 +1558,37 @@ void ofApp::initGraph() {
         {
             string prevLine;
             string line;
+            
+            if (! file.eof() )
+            {
+                getline (file,line);
+                float versionValue = ofToFloat(split(line, ' ')[1]);
+                
+                if (! file.eof() )
+                {
+                    getline (file,line);
+                    int scenarioValue = ofToInt(split(line, ' ')[1]);
+                    
+                    if(scenarioValue >= 0 && scenarioValue < scenari.size())
+                    {
+                        currentScenario = scenarioValue;
+                        loadScenario(currentScenario);
+                    }
+                    if (! file.eof() )
+                    {
+                        getline (file,line); // ignored
+                    }
+                }
+            }
             while (! file.eof() )
             {
                 prevLine = line;
                 getline (file,line);
-                vector<int> s = splitInt(prevLine,' ');
+                vector<int> s = splitInt(line,' ');
                 if(s.size() == 25)
                 {
                     t = s[0];
+                    //ofLog(OF_LOG_WARNING) << "ADD POINT t:" << t;
                     
                     p.palm.x = s[1];
                     p.palm.y = s[2];
@@ -1456,7 +1596,7 @@ void ofApp::initGraph() {
                     p.index.x = s[4];
                     p.index.y = s[5];
                     p.index.z = s[6];
-                    gAL.add(t, p*GRAPH_SCALE);
+                    gAL.add(t, (p*GRAPH_SCALE));
                     
                     p.palm.x = s[7];
                     p.palm.y = s[8];
@@ -1464,7 +1604,7 @@ void ofApp::initGraph() {
                     p.index.x = s[10];
                     p.index.y = s[11];
                     p.index.z = s[12];
-                    gAR.add(t, p*GRAPH_SCALE);
+                    gAR.add(t, (p*GRAPH_SCALE));
                     
                     p.palm.x = s[13];
                     p.palm.y = s[14];
@@ -1472,7 +1612,7 @@ void ofApp::initGraph() {
                     p.index.x = s[16];
                     p.index.y = s[17];
                     p.index.z = s[18];
-                    gBL.add(t, p*GRAPH_SCALE);
+                    gBL.add(t, (p*GRAPH_SCALE));
                     
                     p.palm.x = s[19];
                     p.palm.y = s[20];
@@ -1480,7 +1620,7 @@ void ofApp::initGraph() {
                     p.index.x = s[22];
                     p.index.y = s[23];
                     p.index.z = s[24];
-                    gBR.add(t, p*GRAPH_SCALE);
+                    gBR.add(t, (p*GRAPH_SCALE));//*/
                 }
             }
             
@@ -1497,7 +1637,13 @@ void ofApp::initGraph() {
         
         file.close();
     }
+}
 
+void ofApp::setFinger(bool f) {
+    gAL.setFinger(f);
+    gAR.setFinger(f);
+    gBL.setFinger(f);
+    gBR.setFinger(f);
 }
 
 #pragma mark -
