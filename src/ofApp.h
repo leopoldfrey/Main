@@ -52,22 +52,22 @@ class ofApp : public ofBaseApp
 public:
     
 #pragma mark -
-#pragma mark __OK__ BUG vérifier ofxOscsocket exception > gestion de l'exception
+#pragma mark __OK__ BUG verifier ofxOscsocket exception > gestion exception
 #pragma mark __OK__ TODO GUI quand enregistre pas de rond rouge > scenario en rouge
 #pragma mark __OK__ TODO GUI pas de visualisation du son
 #pragma mark __OK__ TODO fleche gauche / droite
 #pragma mark __OK__ TODO fullscreen at start
 #pragma mark __OK__ TODO RECORD nombre flottant point ou virgule CSV / CSV2
-#pragma mark __OK__ TODO RECORD fichiers séparés par scénario
+#pragma mark __OK__ TODO RECORD fichiers separes par scenario
 #pragma mark __OK__ TODO RECORD palm+index
 #pragma mark __OK__ TODO RECORD replay
 #pragma mark __OK__ TODO REAL LOG
-#pragma mark TODO NOTICE!!!!!
-#pragma mark TODO PC numéro de version dans le nom
-#pragma mark TODO graph
+#pragma mark __OK__ TODO NOTICE!!!!!
+#pragma mark __OK__ TODO graph
+#pragma mark __OK__ TODO lister les scenari
+#pragma mark __OK__ TODO numero de version dans le nom appli
 #pragma mark TODO Z SOUND FX
 #pragma mark BUG check window title fullscreen
-#pragma mark TOTO lister les scénari
 #pragma mark -
     
 #if USE_ZEROCONF
@@ -166,6 +166,7 @@ public:
     ofXml scenariXml;
     int currentScenario;
     vector<scenario> scenari;
+    bool doListScenari;
     
     void loadScenari();
     void saveScenari();
@@ -177,6 +178,7 @@ public:
     void updateScenario();
     void renameScenario();
     void deleteScenario();
+    void listScenari();
     
 #pragma mark -
 #pragma mark LEAP
@@ -464,19 +466,39 @@ public:
             if (!ifa->ifa_addr) {
                 continue;
             }
-            if(strcmp(ifa->ifa_name, "en0") == 0 && ifa->ifa_addr->sa_family == AF_INET)
-            {
-                tmpAddrPtr=&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
-                inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
-            } else if (strcmp(ifa->ifa_name, "en1") == 0 && ifa->ifa_addr->sa_family == AF_INET){
-                tmpAddrPtr=&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
-                inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
-            } else if (strcmp(ifa->ifa_name, "en2") == 0 && ifa->ifa_addr->sa_family == AF_INET){
-                tmpAddrPtr=&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
-                inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
-            } else if (strcmp(ifa->ifa_name, "en3") == 0 && ifa->ifa_addr->sa_family == AF_INET){
-                tmpAddrPtr=&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
-                inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
+            if(ifa->ifa_addr->sa_family == AF_INET) {
+                //ofLog() << "IFA NAME " << ifa->ifa_name;
+                if(strcmp(ifa->ifa_name, "en0") == 0) {
+                    tmpAddrPtr=&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
+                    inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
+                } else if (strcmp(ifa->ifa_name, "en1") == 0){
+                    tmpAddrPtr=&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
+                    inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
+                } else if (strcmp(ifa->ifa_name, "en2") == 0){
+                    tmpAddrPtr=&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
+                    inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
+                } else if (strcmp(ifa->ifa_name, "en3") == 0){
+                    tmpAddrPtr=&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
+                    inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
+                } else if (strcmp(ifa->ifa_name, "en4") == 0){
+                    tmpAddrPtr=&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
+                    inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
+                } else if (strcmp(ifa->ifa_name, "en5") == 0){
+                    tmpAddrPtr=&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
+                    inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
+                } else if (strcmp(ifa->ifa_name, "en6") == 0){
+                    tmpAddrPtr=&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
+                    inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
+                } else if (strcmp(ifa->ifa_name, "en7") == 0){
+                    tmpAddrPtr=&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
+                    inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
+                } else if (strcmp(ifa->ifa_name, "en8") == 0){
+                    tmpAddrPtr=&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
+                    inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
+                } else if (strcmp(ifa->ifa_name, "en9") == 0){
+                    tmpAddrPtr=&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
+                    inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
+                }
             }
         }
         if (ifAddrStruct!=NULL)

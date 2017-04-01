@@ -15,7 +15,6 @@
 #define GRAPH_DSPD 6
 // TODO 3D
 // TODO VOLUME / AIRE
-// TODO START/END
 
 
 typedef struct _timePoint {

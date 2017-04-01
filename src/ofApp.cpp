@@ -61,8 +61,8 @@ void ofApp::setup() {
         outPort = 14000;
     }
     receiver.setup(inPort);
+    socketOk = false;
     connectSocket();
-    //socketOk = sender.setup(hostname, outPort);
 #endif
     sync.setup((ofParameterGroup&)advancedPanel, inPort+10, hostname, outPort+10);
     
@@ -144,6 +144,19 @@ void ofApp::draw() {
         }
         verdana14.drawString(name, 10, 20);
         textFade--;
+    }
+    
+    if(doListScenari) {
+        ofSetColor(255,255,255,127);
+        for(int i = 0 ; i < scenari.size() ; i++) {
+            string name = to_string(i) + " - " + scenari[i].getName();
+            replace( name.begin(), name.end(), '_', ' ');
+            if(currentScenario == i)
+                ofSetColor(255,255,255,200);
+            else
+                ofSetColor(127,127,255,200);
+            verdana14.drawString(name, 10, 80 + 20 * i);
+        }
     }
     
     if(!bHide)
@@ -275,7 +288,7 @@ void ofApp::fboDraw() {
         cam.setTarget(target);
         prevCamTarget = target;
     } else {
-        //ofofLog() << "NO HANDS";
+        //ofLog() << "NO HANDS";
         cam.setTarget(ofVec3f(0.,0.,0.));
     }
     if(grid)
@@ -454,8 +467,13 @@ void ofApp::keyPressed(int key) {
                 startPlay();
         } else if (key == 'i') {
             textFade = 255;
+        } else if (key == 'l') {
+            listScenari();
         } else if (key == 'g') {
             grid = !grid;
+        } else if (key == 13 || key == 27) {
+            bHide = true;
+            doListScenari = false;
         } else if(!isPlaying) {
             if (key == ' ' || key == 359 || key == 358) {
                 nextScenario();
@@ -485,7 +503,7 @@ void ofApp::keyPressed(int key) {
                 currentScenario = 17;
                 nextScenario();
             } else {
-                //ofofLog() << "KEY " << (int)key;
+                //ofLog() << "KEY " << (int)key;
             }
         }
     }
@@ -832,6 +850,16 @@ void ofApp::saveScenario() {
     ofLog() << "New scenario " << s.toString();
     scenari.push_back(s);
     saveScenari();
+    
+    currentScenario = scenari.size()-1;
+}
+
+void ofApp::listScenari() {
+    if(isPlaying)
+        stopPlay();
+    if(isRecording)
+        stopRec();
+    doListScenari = !doListScenari;
 }
 
 #pragma mark -
@@ -839,7 +867,7 @@ void ofApp::saveScenario() {
 
 void ofApp::initGui() {
     // GUI
-    //ofofLog() << "gui setup";
+    //ofLog() << "gui setup";
     gui.setup();
     gui.setName("Settings");
     
@@ -856,7 +884,7 @@ void ofApp::initGui() {
     generalPanel.add(ip4.set("ip4", 19, 0, 255));
     ip4.addListener(this,&ofApp::ipChanged);
     generalPanel.add(volume.set("volume", 1.,0.,5.));
-    //ofofLog() << "generalPanel";
+    //ofLog() << "generalPanel";
     
 #endif
     advancedPanel.setName("Advanced Settings");
@@ -884,12 +912,12 @@ void ofApp::initGui() {
     advancedPanel.add(soundB.set("Sound B", 2, 1, NUM_SOUNDS));
     soundB.addListener(this, &ofApp::soundChanged);
     advancedPanel.add(snd.set("Sound Influence", 0., 0., 1.));
-    //ofofLog() << "advancedPanel";
+    //ofLog() << "advancedPanel";
    
     expertPanel.setName("Expert Settings");
     expertPanel.add(smooth.set("Smooth Leap Data", 0.82,0.,1.));
     expertPanel.add(smoothCam.set("Smooth Camera", 0.96, 0., 1.));
-    //ofofLog() << "expertPanel";
+    //ofLog() << "expertPanel";
     
     gui.add(generalPanel);
     gui.add(advancedPanel);
@@ -900,16 +928,16 @@ void ofApp::initGui() {
     
     gui.setFillColor(ofColor::gray);
     gui.setPosition(ofGetWidth() - 210, 10);
-    //ofofLog() << "load file >>>";
+    //ofLog() << "load file >>>";
     gui.loadFromFile("settings.xml");
     
     bHide = true;
-    //ofofLog() << "fin gui";
+    //ofLog() << "fin gui";
     
 }
 
 void ofApp::userChanged(bool & u){
-    //ofofLog() << "userChanged";
+    //ofLog() << "userChanged";
     user = u;
     if(user)
     {
@@ -920,8 +948,8 @@ void ofApp::userChanged(bool & u){
         outPort = 14000;
     }
     receiver.setup(inPort);
+    socketOk = false;
     connectSocket();
-    //socketOk = sender.setup(hostname, outPort);
     sync.setup((ofParameterGroup&)advancedPanel, inPort+10, hostname, outPort+10);
     updateSounds();
 }
@@ -934,6 +962,7 @@ void ofApp::ipChanged(int & i)
     {
         hostname = ss.str();
         ofLog() << "Setting Hostname \"" << hostname << "\"";
+        socketOk = false;
         connectSocket();
         sync.setup((ofParameterGroup&)advancedPanel, inPort+10, hostname, outPort+10);
     }
@@ -1250,17 +1279,17 @@ void ofApp::receiveOSC() {
             bool left = true;
             if(m.getAddress() == "/leapLeft" || m.getAddress() == "/leapRight") {
                 left = m.getAddress() == "/leapLeft";
-                if(m.getNumArgs() == 4)
+                if(m.getNumArgs() == 7)
                 {
                     leapPoint p;
                     p.palm = ofPoint(m.getArgAsFloat(0), m.getArgAsFloat(1), m.getArgAsFloat(2));
                     p.index = ofPoint(m.getArgAsFloat(3), m.getArgAsFloat(4), m.getArgAsFloat(5));
                     remoteSmoothedVol = m.getArgAsFloat(6);
-                    if(twoPlayers)
-                        addRemotePoint(left, p);
+                    //ofLog() << "receivePoint(" << p.toString(2) << ")";
+                    addRemotePoint(left, p);
                 }
             } else if(m.getAddress() == "/scenario") {
-                //ofofLog() << "Server got message: " << m.getAddress() << " " << m.getArgAsInt(0);
+                //ofLog() << "Server got message: " << m.getAddress() << " " << m.getArgAsInt(0);
                 currentScenario = m.getArgAsInt(0);
                 clearChains();
                 textFade = 255;
@@ -1279,6 +1308,7 @@ void ofApp::sendPoint(bool left, leapPoint p, float vol) {
     
     if(connectSocket())
     {
+        //ofLog() << "sendPoint(" << p.toString(2) << ")";
         ofxOscMessage m;
         
         m.setAddress(left ? "/leapLeft" : "/leapRight");
@@ -1353,10 +1383,18 @@ void ofApp::record()
     ofstream recFile(recFileName, ofstream::out | ofstream::app);
     recFile << std::fixed << std::setprecision(PRECISION);
     recFile << (ofGetSystemTime() - recTime) << ", ";
-    recFile << lL.toString(PRECISION) << ", ";
-    recFile << lR.toString(PRECISION) << ", ";
-    recFile << rlL.toString(PRECISION) << ", ";
-    recFile << rlR.toString(PRECISION);
+    if(user)
+    {
+        recFile << rlL.toString(PRECISION) << ", ";
+        recFile << rlR.toString(PRECISION) << ", ";
+        recFile << lL.toString(PRECISION) << ", ";
+        recFile << lR.toString(PRECISION);
+    } else {
+        recFile << lL.toString(PRECISION) << ", ";
+        recFile << lR.toString(PRECISION) << ", ";
+        recFile << rlL.toString(PRECISION) << ", ";
+        recFile << rlR.toString(PRECISION);
+    }
     recFile << endl;
 }
 
@@ -1473,10 +1511,20 @@ void ofApp::playUpdate() {
 }
 
 void ofApp::playLine() {
-    leapPoint AL = leapPoint(ofPoint(nextLine[1],nextLine[2],nextLine[3]), ofPoint(nextLine[4],nextLine[5],nextLine[6]))/REC_SCALE;
-    leapPoint AR = leapPoint(ofPoint(nextLine[7],nextLine[8],nextLine[9]), ofPoint(nextLine[10],nextLine[11],nextLine[12]))/REC_SCALE;
-    leapPoint BL = leapPoint(ofPoint(nextLine[13],nextLine[14],nextLine[15]), ofPoint(nextLine[16],nextLine[17],nextLine[18]))/REC_SCALE;
-    leapPoint BR = leapPoint(ofPoint(nextLine[19],nextLine[20],nextLine[21]), ofPoint(nextLine[22],nextLine[23],nextLine[24]))/REC_SCALE;
+    leapPoint AL, AR, BL, BR;
+    if(user)
+    {
+        BL = leapPoint(ofPoint(nextLine[1],nextLine[2],nextLine[3]), ofPoint(nextLine[4],nextLine[5],nextLine[6]))/REC_SCALE;
+        BR = leapPoint(ofPoint(nextLine[7],nextLine[8],nextLine[9]), ofPoint(nextLine[10],nextLine[11],nextLine[12]))/REC_SCALE;
+        AL = leapPoint(ofPoint(nextLine[13],nextLine[14],nextLine[15]), ofPoint(nextLine[16],nextLine[17],nextLine[18]))/REC_SCALE;
+        AR = leapPoint(ofPoint(nextLine[19],nextLine[20],nextLine[21]), ofPoint(nextLine[22],nextLine[23],nextLine[24]))/REC_SCALE;
+    } else {
+        AL = leapPoint(ofPoint(nextLine[1],nextLine[2],nextLine[3]), ofPoint(nextLine[4],nextLine[5],nextLine[6]))/REC_SCALE;
+        AR = leapPoint(ofPoint(nextLine[7],nextLine[8],nextLine[9]), ofPoint(nextLine[10],nextLine[11],nextLine[12]))/REC_SCALE;
+        BL = leapPoint(ofPoint(nextLine[13],nextLine[14],nextLine[15]), ofPoint(nextLine[16],nextLine[17],nextLine[18]))/REC_SCALE;
+        BR = leapPoint(ofPoint(nextLine[19],nextLine[20],nextLine[21]), ofPoint(nextLine[22],nextLine[23],nextLine[24]))/REC_SCALE;
+    }
+
     if(AL != leapZero() && AL != pAL)
     {
         addPoint(true, AL);
