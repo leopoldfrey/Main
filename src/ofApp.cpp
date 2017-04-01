@@ -796,7 +796,7 @@ void ofApp::renameScenario() {
     if(currentScenario < scenari.size() && currentScenario >= 0)
     {
         string name = inputDialog("Rename Scenario", "Enter a new name for this scenario", scenari[currentScenario].getName());
-        if(name == "none")
+        if(name == "")
             return;
         replace( name.begin(), name.end(), ' ', '_');
         
@@ -808,7 +808,7 @@ void ofApp::renameScenario() {
 
 void ofApp::saveScenario() {
     string name = inputDialog("New Scenario", "Enter a name for this scenario", "name");
-    if(name == "none")
+    if(name == "")
         return;
     
     replace( name.begin(), name.end(), ' ', '_');
