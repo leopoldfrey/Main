@@ -483,7 +483,7 @@ void ofApp::keyPressed(int key) {
                 saveScenario();
             } else if (key == 'W') {
                 saveScenari();
-            } else if (key == 'X') {
+            } else if (key == 'L') {
                 loadScenari();
             } else if (key == 'u') {
                 updateScenario();
