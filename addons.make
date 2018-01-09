@@ -1,3 +1,4 @@
 ofxGui
 ofxLeapMotion2
 ofxOsc
+ofxSyphon

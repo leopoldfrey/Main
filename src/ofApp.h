@@ -4,7 +4,7 @@
 #define _DNS_SD_LIBDISPATCH 0
 #define USE_ZEROCONF 0
 
-#define VERSION 1.1
+#define VERSION 1.2
 #define NUM_SOUNDS 5
 
 #include "ofMain.h"
@@ -27,6 +27,7 @@
 #include <ifaddrs.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include "ofxSyphonServer.h"
 #else
 #include <WinSock.h>
 #endif
@@ -330,6 +331,11 @@ public:
     int clicX;
     void initGraph();
     void setFinger(bool f);
+    
+#pragma mark -
+#pragma mark SYPHON
+    
+    ofxSyphonServer syphon;
     
 #pragma mark -
 #pragma mark UTILS

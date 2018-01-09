@@ -74,6 +74,8 @@ void ofApp::setup() {
     fullscreen = true;
     ofSetFullscreen(true);
     gui.setPosition(ofGetScreenWidth()-210,10);
+    
+    syphon.setName("Main");
 }
 
 void ofApp::update() {
@@ -118,6 +120,8 @@ void ofApp::draw() {
     ofBackground(0,0,0);
     
     fbo.draw(0,0);
+    
+    syphon.publishScreen();
     
     if(saveImage)
     {
