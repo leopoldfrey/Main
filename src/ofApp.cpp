@@ -5,6 +5,8 @@
 
 void ofApp::setup() {
     
+	initCam = false;
+
     ofLogToFile("log.txt", true);
     //ofLogToConsole();
     
@@ -35,11 +37,12 @@ void ofApp::setup() {
     ofClear(0,0,0, 0);
     fbo.end();
     
-    leap.setReceiveBackgroundFrames(true);
-    leap.open();
-    
-    cam.setOrientation(ofPoint(-20, 0, 0));
-    
+	cam.setOrientation(ofPoint(-20, 0, 0));
+
+
+	leap.setReceiveBackgroundFrames(true);
+	leap.open();
+
     initGui();
     initSound();
     
@@ -111,6 +114,14 @@ void ofApp::update() {
 }
 
 void ofApp::draw() {
+
+	if (initCam == false)
+	{
+		initCpt++;
+		if (initCpt == 10)
+			initCam = true;
+	}
+		
     if(graphMode)
     {
         graphDraw();
@@ -293,8 +304,10 @@ void ofApp::fboDraw() {
         prevCamTarget = target;
     } else {
         //ofLog() << "NO HANDS";
+		//cam.reset();
         cam.setTarget(ofVec3f(0.,0.,0.));
-    }
+		//cam.setOrientation(ofPoint(-20, 0, 0));
+	}
     if(grid)
     {
         ofPushMatrix();
@@ -425,9 +438,9 @@ void ofApp::keyPressed(int key) {
         graphMode = !graphMode;
         if(graphMode)
         {
-            if(isRecording)
+            //if(isRecording)
                 stopRec();
-            if(isPlaying)
+            //if(isPlaying)
                 stopPlay();
             initGraph();
         }
@@ -671,6 +684,9 @@ void ofApp::saveScenari() {
 }
 
 void ofApp::nextScenario() {
+	//ofLog() << "nextScenario";
+	if (isPlaying)
+		return;
     if(scenari.size() == 0)
         return;
     currentScenario++;
@@ -990,6 +1006,8 @@ void ofApp::leapUpdate() {
     fingersFound.clear();
     simpleHands = leap.getSimpleHands();
     
+	if (initCam == false)
+		return;
     
     if( leap.isFrameNew() )
     {
@@ -1217,7 +1235,7 @@ void ofApp::initSound() {
     smoothedVol = 0;
     remoteSmoothedVol = 0;
     
-    ofFmodSetBuffersize(128);
+    ofFmodSetBuffersize(512);
     
     sounds[0].load("sounds/piano.aif");
     sounds[1].load("sounds/cello.aif");
@@ -1481,6 +1499,8 @@ void ofApp::startPlay() {
 }
 
 void ofApp::playUpdate() {
+	if (!isPlaying)
+		return;
     if(playFile.is_open())
     {
         curTime = ofGetSystemTime() - playTime;
@@ -1546,7 +1566,7 @@ void ofApp::playLine() {
     }
     if(BR != leapZero() && BR != pBR)
     {
-        addRemotePoint(true, BR);
+        addRemotePoint(false, BR);
         pBR = BR;
     }
 }
@@ -1554,6 +1574,10 @@ void ofApp::playLine() {
 void ofApp::stopPlay() {
     playFile.close();
     isPlaying = false;
+	remPlayL.stop();
+	remPlayR.stop();
+	playL.stop();
+	playR.stop();
     ofLog() << "Stop playing";
     textFade = 255;
 }

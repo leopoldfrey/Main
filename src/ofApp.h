@@ -193,6 +193,8 @@ public:
     bool enableCamCtrl;
     bool saveImage;
     mainCam cam;
+	bool initCam;
+	int initCpt;
     ofxLeapMotion leap;
     vector <ofxLeapMotionSimpleHand> simpleHands;
 
