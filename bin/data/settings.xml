@@ -1,16 +1,16 @@
 <Settings>
 	<General_Settings>
-		<User_A_B>0</User_A_B>
+		<User_A_B>1</User_A_B>
 		<ip1>192</ip1>
 		<ip2>168</ip2>
 		<ip3>0</ip3>
-		<ip4>10</ip4>
+		<ip4>26</ip4>
 		<volume>1</volume>
 	</General_Settings>
 	<Advanced_Settings>
-		<Two_players>0</Two_players>
+		<Two_players>1</Two_players>
 		<Self>1</Self>
-		<Remote>0</Remote>
+		<Remote>1</Remote>
 		<palm_finger>1</palm_finger>
 		<grid>1</grid>
 		<origin>0</origin>
@@ -32,21 +32,21 @@
 	<Palm_Finger>1</Palm_Finger>
 		<Grid>0</Grid>
 		<Origin>0</Origin>
-		<Move_Camera>1</Move_Camera>
+		<Move_Camera>0</Move_Camera>
 		<Draw_Mode>0</Draw_Mode>
-		<Deviation>0</Deviation>
-		<Decay>0.969388</Decay>
-		<Trail_Length>0.158163</Trail_Length>
+		<Deviation>0.311224</Deviation>
+		<Decay>0.744898</Decay>
+		<Trail_Length>0.887755</Trail_Length>
 		<Random_Position>0</Random_Position>
 		<Size>18.6071</Size>
-		<Color_A>1, 0.708455, 0, 1</Color_A>
-		<Color_B>0, 0.781341, 0.297168, 1</Color_B>
-		<Random_Color>0.0765306</Random_Color>
+		<Color_A>0.167014, 0.422116, 1, 1</Color_A>
+		<Color_B>1, 0.833403, 0.193045, 1</Color_B>
+		<Random_Color>0.433673</Random_Color>
 		<Color_Mode>0</Color_Mode>
-		<Sound_A>1</Sound_A>
-		<Sound_B>1</Sound_B>
-		<Sound_Influence>0</Sound_Influence>
-	<Position_to_Color>0</Position_to_Color>
+		<Sound_A>3</Sound_A>
+		<Sound_B>3</Sound_B>
+		<Sound_Influence>0.22449</Sound_Influence>
+	<Position_to_Color>1</Position_to_Color>
 	</Advanced_Settings>
 	<Expert_Settings>
 		<smoothCam>0.96</smoothCam>
