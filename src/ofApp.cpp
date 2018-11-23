@@ -1573,7 +1573,7 @@ void ofApp::playLine() {
     }
     if(BR != leapZero() && BR != pBR)
     {
-        addRemotePoint(true, BR);
+        addRemotePoint(false, BR);
         pBR = BR;
     }
 }
